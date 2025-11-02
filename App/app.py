@@ -1,62 +1,46 @@
 import streamlit as st
+from langchain_openai import ChatOpenAI
 from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain_openai import ChatOpenAI
-from langchain.prompts import ChatPromptTemplate
-from langchain.chains.combine_documents import create_stuff_documents_chain
-from langchain.chains.retrieval import create_retrieval_chain
 import os
 
-st.set_page_config(page_title="🎬 GenQuery", layout="centered")
-st.title("🎬 GenQuery – AI Movie Data Assistant")
-st.caption("Built with LangChain • OpenAI • FAISS • Streamlit")
+# Load API key automatically from Streamlit Secrets
+OPENAI_API_KEY = st.secrets.get("OPENAI_API_KEY")
 
+if not OPENAI_API_KEY:
+    st.error(" Missing OpenAI API key. Please add it in Streamlit Secrets.")
+    st.stop()
+
+os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
+
+# Page setup 
+st.set_page_config(page_title="GenQuery – AI Assistant", page_icon="🎬", layout="centered")
+
+st.markdown(
+    """
+    <h1 style='text-align: center; color: #F5C518;'>🎬 GenQuery – AI Movie Data Assistant</h1>
+    <p style='text-align: center; color: #BBBBBB;'>Built with <b>LangChain</b> • <b>OpenAI</b> • <b>FAISS</b> • <b>Streamlit</b></p>
+    """,
+    unsafe_allow_html=True,
+)
+
+st.markdown("---")
+
+st.subheader("🎥 Try queries like:")
 st.markdown("""
-**Try queries like:**
-- “Top 5 sci-fi movies after 2015”
-- “Who directed the most movies in 2020?”
-- “Average IMDb rating by genre”
+- *Top 5 sci-fi movies after 2015*  
+- *Who directed the most movies in 2020?*  
+- *Average IMDb rating by genre*
 """)
 
-api_key = st.text_input("🔑 Enter your OpenAI API key", type="password")
-if not api_key:
-    st.warning("Please enter your OpenAI API key to continue.")
-    st.stop()
+query = st.text_input("🔍 Enter your question:")
 
-os.environ["OPENAI_API_KEY"] = api_key
+if query:
+    st.info("Running your query... please wait ⏳")
 
-try:
-    embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-    db = FAISS.load_local("rag_imdb", embeddings, allow_dangerous_deserialization=True)
-    retriever = db.as_retriever()
-    st.success("✅ FAISS index loaded!")
-except Exception as e:
-    st.error(f"Error loading FAISS index: {e}")
-    st.stop()
+    # Example LLM usage (you can customize this for FAISS retrieval later)
+    llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
+    result = llm.invoke(query)
 
-llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.2)
-
-prompt = ChatPromptTemplate.from_template("""
-You are a movie expert. Use the provided context to answer clearly.
-Question: {input}
-Context: {context}
-Answer:
-""")
-
-chain = create_stuff_documents_chain(llm, prompt)
-rag_chain = create_retrieval_chain(retriever, chain)
-
-query = st.text_input("🎥 Ask a question about movies:")
-
-if st.button("Search"):
-    if query.strip():
-        with st.spinner("Generating answer..."):
-            try:
-                response = rag_chain.invoke({"input": query})
-                st.markdown("### 🎯 Answer:")
-                st.write(response["answer"])
-            except Exception as e:
-                st.error(f"Error: {e}")
-    else:
-        st.warning("Please enter a question first.")
+    st.success(result.content)
 
