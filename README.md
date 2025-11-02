@@ -37,10 +37,9 @@ Streamlit Cloud → https://streamlit.io/cloud
 Hugging Face Spaces → Gradio / Streamlit runtime
 
 # Tech Stack
-Layer	Tools / Frameworks
-LLMs 	OpenAI GPT, Meta LLaMA-3
-Retrieval	RAG (LangChain + FAISS)
-Embeddings	Hugging Face Sentence Transformers
-Backend	Python
-Frontend	Streamlit
-Data	IMDB dataset (TSV → SQLite)
+- LLMs: OpenAI GPT, Meta LLaMA-3
+- Retrieval	RAG (LangChain + FAISS)
+- Embeddings	Hugging Face Sentence Transformers
+- Backend	Python
+- Frontend	Streamlit
+- Data	IMDB dataset (TSV → SQLite)
