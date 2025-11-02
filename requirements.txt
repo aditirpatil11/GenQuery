@@ -7,6 +7,3 @@ faiss-cpu==1.11.0
 openai==1.33.0
 pandas==2.2.2
 numpy==1.26.4
-
-
-
