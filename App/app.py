@@ -1,63 +1,61 @@
 import streamlit as st
-from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_community.vectorstores import FAISS
 from langchain_openai import ChatOpenAI
-from langchain_core.prompts import ChatPromptTemplate
+from langchain.chains import RetrievalQA
+import os
 
-st.set_page_config(page_title="GenQuery – AI Movie Assistant", page_icon="🎬", layout="wide")
-st.title("🎬 GenQuery – AI Movie RAG Assistant")
+# PAGE CONFIG 
+st.set_page_config(page_title="GenQuery – AI Movie RAG Assistant", page_icon="🎬", layout="wide")
 
 st.markdown("""
+# 🎬 GenQuery – AI Movie RAG Assistant
+
 Ask questions like:
 - "List top 5 movies after 2020"
 - "Visualize number of movies per genre"
 - "Which directors have the highest average rating?"
 """)
 
-query = st.text_input("Enter your question:", placeholder="e.g., Top rated sci-fi movies after 2015")
-
-# Load FAISS retriever
+#  LOAD RETRIEVER 
+retriever = None
 try:
     embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-    retriever = FAISS.load_local("rag_imdb", embeddings, allow_dangerous_deserialization=True)
+    if os.path.exists("rag_imdb/faiss_index.bin") or os.path.exists("rag_imdb/index.faiss"):
+        db = FAISS.load_local("rag_imdb", embeddings, allow_dangerous_deserialization=True)
+        retriever = db.as_retriever()
+        st.success("FAISS retriever loaded successfully!")
+    else:
+        st.warning("FAISS index not found — running in LLM-only mode.")
 except Exception as e:
-    st.error(f"Error loading retriever: {e}")
-    st.stop()
+    st.warning(f"Could not load retriever: {e}")
+    retriever = None
 
-# LLM
-llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3)
+#  LLM SETUP 
+llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
 
-# Prompt template
-prompt = ChatPromptTemplate.from_template("""
-You are a movie data analyst with access to IMDb-like data.
-Use the provided retrieved context to answer the user's question.
+# If retriever exists, use RetrievalQA; else fallback to plain LLM
+if retriever:
+    qa_chain = RetrievalQA.from_chain_type(llm=llm, retriever=retriever, return_source_documents=True)
+else:
+    qa_chain = None
 
-Context:
-{context}
+#  QUERY INPUT 
+st.subheader("Ask your question:")
+user_query = st.text_input("e.g., Top rated sci-fi movies after 2015")
 
-Question:
-{question}
+if user_query:
+    with st.spinner("Thinking..."):
+        try:
+            if qa_chain:
+                result = qa_chain.invoke({"query": user_query})
+                st.markdown("### 💡 Answer:")
+                st.write(result["result"])
+            else:
+                response = llm.invoke(user_query)
+                st.markdown("### 💡 Answer:")
+                st.write(response.content)
+        except Exception as e:
+            st.error(f"Error: {e}")
 
-Answer clearly and concisely.
-""")
-
-def rag_answer(question):
-    """Manual RAG retrieval + generation"""
-    try:
-        docs = retriever.get_relevant_documents(question)
-        context = "\n\n".join([d.page_content for d in docs])
-        full_prompt = prompt.format(context=context, question=question)
-        response = llm.invoke(full_prompt)
-        return response.content
-    except Exception as e:
-        return f"Error during RAG processing: {e}"
-
-if query:
-    with st.spinner("🔍 Thinking... generating intelligent response..."):
-        answer = rag_answer(query)
-        st.success("✅ Answer:")
-        st.write(answer)
-
-st.markdown("---")
-st.caption("Built using Streamlit • LangChain • OpenAI • HuggingFace • FAISS")
 
