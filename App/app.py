@@ -2,15 +2,15 @@ import os
 import streamlit as st
 import openai
 import chromadb
+from chromadb.config import Settings
 
-# Page setup
+#  Page setup
 st.set_page_config(
     page_title="GenQuery – AI Assistant",
     page_icon="🎥",
     layout="centered"
 )
 
-# App header
 st.markdown("""
 # 🎬 **GenQuery – AI Assistant**
 Built with **LangChain • OpenAI • ChromaDB • Streamlit**
@@ -27,41 +27,45 @@ if not api_key:
     st.error("⚠️ Please add your `OPENAI_API_KEY` in Streamlit Secrets.")
     st.stop()
 
-# ✅ Initialize OpenAI (old-style to fix proxy error)
+# Initialize OpenAI client
 openai.api_key = api_key
 
-# 🧩 Initialize Chroma vector store
-chroma_client = chromadb.Client()
-collection = chroma_client.create_collection("imdb_data")
+# Initialize Chroma safely (disable telemetry & use persistent mode)
+chroma_client = chromadb.PersistentClient(
+    path="./chroma_store",
+    settings=Settings(allow_reset=True, anonymized_telemetry=False)
+)
 
-# Load text docs from rag_imdb folder
+# Create or get collection
+collection = chroma_client.get_or_create_collection("imdb_data")
+
+# Load docs (lightweight)
 rag_dir = os.path.join(os.path.dirname(__file__), "..", "rag_imdb")
 if os.path.exists(rag_dir):
     for f in os.listdir(rag_dir):
         if f.endswith(".txt") or f.endswith(".jsonl"):
             with open(os.path.join(rag_dir, f), "r", encoding="utf-8") as file:
                 text = file.read()
-                collection.add(documents=[text], ids=[f])
+                if not collection.count():  # prevent duplicates
+                    collection.add(documents=[text], ids=[f])
 
 # Query input
 query = st.text_input("🎯 Enter your question:")
 if st.button("Run Query") and query:
     st.info("Running your query... please wait ⏳")
 
-    # Retrieve top documents
-    results = collection.query(query_texts=[query], n_results=3)
-    context = " ".join(results["documents"][0]) if results["documents"] else ""
-
-    prompt = f"""Use the following context to answer the question.
-
-    Context:
-    {context}
-
-    Question: {query}
-    """
-
-    # Ask LLM
     try:
+        results = collection.query(query_texts=[query], n_results=3)
+        context = " ".join(results["documents"][0]) if results["documents"] else ""
+
+        prompt = f"""Use the following movie data context to answer the question.
+
+        Context:
+        {context}
+
+        Question: {query}
+        """
+
         response = openai.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
