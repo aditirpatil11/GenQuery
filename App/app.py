@@ -18,7 +18,7 @@ st.set_page_config(page_title="GenQuery – AI Assistant", page_icon="🎬", lay
 
 st.markdown(
     """
-    <h1 style='text-align: center; color: #F5C518;'>🎬 GenQuery – AI Movie Data Assistant</h1>
+    <h1 style='text-align: center; color: #F5C518;'>🎬 GenQuery – AI Assistant</h1>
     <p style='text-align: center; color: #BBBBBB;'>Built with <b>LangChain</b> • <b>OpenAI</b> • <b>FAISS</b> • <b>Streamlit</b></p>
     """,
     unsafe_allow_html=True,
