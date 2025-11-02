@@ -7,64 +7,56 @@ from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains.retrieval import create_retrieval_chain
 import os
 
-# Streamlit UI 
-st.set_page_config(page_title="🎬 GenQuery", layout="wide")
-st.title("🎬 GenQuery – AI Assistant")
-st.caption("Powered by LangChain • OpenAI • FAISS • Streamlit")
+st.set_page_config(page_title="🎬 GenQuery", layout="centered")
+st.title("🎬 GenQuery – AI Movie Data Assistant")
+st.caption("Built with LangChain • OpenAI • FAISS • Streamlit")
 
 st.markdown("""
-💡 Example questions:
-- Top 5 movies after 2020  
-- Highest-rated movies by Christopher Nolan  
-- Genre-wise average ratings
+**Try queries like:**
+- “Top 5 sci-fi movies after 2015”
+- “Who directed the most movies in 2020?”
+- “Average IMDb rating by genre”
 """)
 
-openai_key = st.text_input("🔑 Enter your OpenAI API Key", type="password")
-if not openai_key:
-    st.warning("Please enter your OpenAI API key to start.")
+api_key = st.text_input("🔑 Enter your OpenAI API key", type="password")
+if not api_key:
+    st.warning("Please enter your OpenAI API key to continue.")
     st.stop()
-os.environ["OPENAI_API_KEY"] = openai_key
 
-#  Load FAISS retriever 
+os.environ["OPENAI_API_KEY"] = api_key
+
 try:
-    st.info("Loading FAISS vector index...")
     embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
     db = FAISS.load_local("rag_imdb", embeddings, allow_dangerous_deserialization=True)
     retriever = db.as_retriever()
-    st.success("✅ FAISS index loaded successfully!")
+    st.success("✅ FAISS index loaded!")
 except Exception as e:
     st.error(f"Error loading FAISS index: {e}")
     st.stop()
 
-# Initialize LLM 
-try:
-    llm = ChatOpenAI(model="gpt-4-turbo", temperature=0.3)
-except Exception as e:
-    st.error(f"Model initialization error: {e}")
-    st.stop()
+llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.2)
 
-#  Create retrieval chain 
 prompt = ChatPromptTemplate.from_template("""
-You are a movie expert. Use the context to answer clearly.
+You are a movie expert. Use the provided context to answer clearly.
 Question: {input}
 Context: {context}
 Answer:
 """)
 
 chain = create_stuff_documents_chain(llm, prompt)
-retrieval_chain = create_retrieval_chain(retriever, chain)
+rag_chain = create_retrieval_chain(retriever, chain)
 
-#  Ask Query 
 query = st.text_input("🎥 Ask a question about movies:")
 
-if st.button("Ask"):
+if st.button("Search"):
     if query.strip():
-        with st.spinner("Thinking..."):
+        with st.spinner("Generating answer..."):
             try:
-                result = retrieval_chain.invoke({"input": query})
-                st.subheader("✅ Answer")
-                st.write(result["answer"])
+                response = rag_chain.invoke({"input": query})
+                st.markdown("### 🎯 Answer:")
+                st.write(response["answer"])
             except Exception as e:
-                st.error(f"⚠️ Error while processing: {e}")
+                st.error(f"Error: {e}")
     else:
-        st.warning("Please enter a question.")
+        st.warning("Please enter a question first.")
+
