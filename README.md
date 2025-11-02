@@ -1,4 +1,4 @@
-##GenQuery – LLM-Based SQL Interpreter
+## GenQuery – LLM-Based SQL Interpreter
 
 GenQuery is an intelligent LLM-powered SQL assistant that lets you query databases in plain English.
 It uses Retrieval-Augmented Generation (RAG), OpenAI and LLaMA-3 models via LangChain, along with FAISS and Hugging Face embeddings, to generate accurate, context-aware SQL queries and execute them instantly.
