@@ -2,20 +2,22 @@ import streamlit as st
 from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_openai import ChatOpenAI
-from langchain.chains.retrieval_qa.base import RetrievalQA
+from langchain.chains.retrieval import create_retrieval_chain
+from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
 
-st.set_page_config(page_title="GenQuery – LLM SQL + RAG", page_icon="🧠", layout="wide")
-st.title("🧠 GenQuery – AI Query & RAG Assistant")
+st.set_page_config(page_title="GenQuery – AI Movie Assistant", page_icon="🎬", layout="wide")
+st.title("🎬 GenQuery – AI Movie RAG Assistant")
 
-st.markdown(
-    """
-    Ask any movie-related question in natural language.  
-    GenQuery uses **RAG (Retrieval-Augmented Generation)**, **FAISS**, and **GPT-4o / LLaMA3**  
-    to generate accurate SQL-like reasoning and natural answers.
-    """
-)
+st.markdown("""
+Ask questions like:
+- "List top 5 movies after 2020"
+- "Visualize number of movies per genre"
+- "Which directors have the highest average rating?"
+""")
 
-query = st.text_input("Enter your query:", placeholder="e.g., Show top 5 comedies after 2018")
+query = st.text_input("Enter your question:", placeholder="e.g., Top rated sci-fi movies after 2015")
 
 # Load FAISS retriever
 try:
@@ -25,17 +27,36 @@ except Exception as e:
     st.error(f"Error loading retriever: {e}")
     st.stop()
 
-# Run LLM if query given
+# Build LLM
+llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3)
+
+# Prompt template for RAG
+prompt = ChatPromptTemplate.from_template("""
+You are a movie data analyst with access to IMDb-style data.
+Use the provided context to answer the user's question accurately.
+
+Context:
+{context}
+
+Question:
+{question}
+
+Answer in a clear and concise way.
+""")
+
+# Create RAG pipeline
+combine_chain = create_stuff_documents_chain(llm, prompt)
+rag_chain = create_retrieval_chain(retriever, combine_chain)
+
+# Run on query
 if query:
-    with st.spinner("🔍 Generating intelligent answer..."):
+    with st.spinner("🔍 Thinking... generating intelligent response..."):
         try:
-            llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3)
-            qa_chain = RetrievalQA.from_chain_type(llm=llm, retriever=retriever)
-            answer = qa_chain.run(query)
+            response = rag_chain.invoke({"question": query})
             st.success("✅ Answer:")
-            st.write(answer)
+            st.write(response["answer"])
         except Exception as e:
-            st.error(f"Error running query: {e}")
+            st.error(f"Error: {e}")
 
 st.markdown("---")
 st.caption("Built using Streamlit • LangChain • OpenAI • HuggingFace • FAISS")
