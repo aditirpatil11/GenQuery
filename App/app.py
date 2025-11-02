@@ -2,10 +2,7 @@ import streamlit as st
 from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_openai import ChatOpenAI
-from langchain.chains.retrieval import create_retrieval_chain
-from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import StrOutputParser
 
 st.set_page_config(page_title="GenQuery – AI Movie Assistant", page_icon="🎬", layout="wide")
 st.title("🎬 GenQuery – AI Movie RAG Assistant")
@@ -27,13 +24,13 @@ except Exception as e:
     st.error(f"Error loading retriever: {e}")
     st.stop()
 
-# Build LLM
+# LLM
 llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3)
 
-# Prompt template for RAG
+# Prompt template
 prompt = ChatPromptTemplate.from_template("""
-You are a movie data analyst with access to IMDb-style data.
-Use the provided context to answer the user's question accurately.
+You are a movie data analyst with access to IMDb-like data.
+Use the provided retrieved context to answer the user's question.
 
 Context:
 {context}
@@ -41,22 +38,26 @@ Context:
 Question:
 {question}
 
-Answer in a clear and concise way.
+Answer clearly and concisely.
 """)
 
-# Create RAG pipeline
-combine_chain = create_stuff_documents_chain(llm, prompt)
-rag_chain = create_retrieval_chain(retriever, combine_chain)
+def rag_answer(question):
+    """Manual RAG retrieval + generation"""
+    try:
+        docs = retriever.get_relevant_documents(question)
+        context = "\n\n".join([d.page_content for d in docs])
+        full_prompt = prompt.format(context=context, question=question)
+        response = llm.invoke(full_prompt)
+        return response.content
+    except Exception as e:
+        return f"Error during RAG processing: {e}"
 
-# Run on query
 if query:
     with st.spinner("🔍 Thinking... generating intelligent response..."):
-        try:
-            response = rag_chain.invoke({"question": query})
-            st.success("✅ Answer:")
-            st.write(response["answer"])
-        except Exception as e:
-            st.error(f"Error: {e}")
+        answer = rag_answer(query)
+        st.success("✅ Answer:")
+        st.write(answer)
 
 st.markdown("---")
 st.caption("Built using Streamlit • LangChain • OpenAI • HuggingFace • FAISS")
+
