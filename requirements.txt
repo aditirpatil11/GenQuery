@@ -1,7 +1,28 @@
-flask==3.0.3
-langchain==0.1.16
-langchain-community==0.0.32
-openai==1.43.0
-sentence-transformers==2.7.0
+# Core frameworks
+Flask==3.0.3
+python-dotenv==1.0.1
+
+# LangChain ecosystem (RAG + LLM)
+langchain==0.2.14
+langchain-core==0.2.13
+langchain-community==0.2.12
+langchain-openai==0.1.15
+
+# Vector store + embeddings
 faiss-cpu==1.8.0
-gunicorn==23.0.0
+sentence-transformers==2.7.0
+
+# OpenAI SDK
+openai==1.43.0
+
+# Data + utilities
+numpy==1.26.4
+pandas==2.2.2
+tqdm==4.67.1
+requests==2.32.3
+
+# Optional: allows .env key loading and clean API interaction
+python-dotenv==1.0.1
+
+# Avoid posthog / telemetry errors
+chromadb==0.5.3
