@@ -1,7 +1,7 @@
 streamlit
 langchain
 langchain-community
-langchain-core
+langchain-openai
 langchain-huggingface
 faiss-cpu
 sentence-transformers
@@ -10,4 +10,3 @@ transformers
 torch
 pandas
 plotly
-
