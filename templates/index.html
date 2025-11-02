@@ -1,1 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GenQuery – AI Assistant</title>
+    <style>
+        body {
+            background-color: #111;
+            color: white;
+            font-family: 'Segoe UI', sans-serif;
+            text-align: center;
+            padding: 60px;
+        }
+        input {
+            width: 60%;
+            padding: 12px;
+            border-radius: 8px;
+            border: none;
+            margin-top: 20px;
+            font-size: 16px;
+        }
+        button {
+            padding: 12px 25px;
+            border: none;
+            background: #5A67D8;
+            color: white;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-left: 10px;
+        }
+        #response {
+            margin-top: 40px;
+            background: #222;
+            padding: 20px;
+            border-radius: 8px;
+            width: 70%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎬 GenQuery – AI RAG Assistant</h1>
+    <form id="queryForm">
+        <input type="text" id="query" name="query" placeholder="Ask me anything..." required>
+        <button type="submit">Ask</button>
+    </form>
+    <div id="response"></div>
+
+    <script>
+        const form = document.getElementById("queryForm");
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const query = document.getElementById("query").value;
+            document.getElementById("response").innerHTML = "<i>Generating response...</i>";
+
+            const res = await fetch("/query", {
+                method: "POST",
+                body: new URLSearchParams({ query }),
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            });
+            const data = await res.json();
+            document.getElementById("response").innerHTML = `<b>Answer:</b> ${data.response}`;
+        });
+    </script>
+</body>
+</html>
 
